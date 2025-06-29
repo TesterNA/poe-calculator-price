@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, combineLatest, map, Observable } from 'rxjs';
 import { Calculator, Preset, Summary, CalculatorResult, GenerateRequestItem } from '../models/calculator.interface';
+import {POE_BEASTS} from './presets';
 
 @Injectable({
   providedIn: 'root'
@@ -29,7 +30,7 @@ export class CalculatorService {
 
   // BehaviorSubjects for reactive state management
   private currentPresetSubject = new BehaviorSubject<Preset>(this.defaultPreset);
-  private availablePresetsSubject = new BehaviorSubject<Preset[]>([this.defaultPreset]);
+  private availablePresetsSubject = new BehaviorSubject<Preset[]>([this.defaultPreset, POE_BEASTS]);
 
   // Public observables
   public currentPreset$ = this.currentPresetSubject.asObservable();
@@ -234,6 +235,7 @@ export class CalculatorService {
   // Import/Export functionality
   exportPreset(): string {
     const currentPreset = this.currentPresetSubject.value;
+    console.dir(currentPreset)
     return btoa(encodeURIComponent(JSON.stringify(currentPreset)));
   }
 
