@@ -8,7 +8,7 @@
       <!-- Exchange Rate -->
       <div class="exchange-rate-compact">
         <label for="exchangeRate">
-          1 <img src="assets/div.svg" class="currency-icon-small" alt="д"> =
+          1 <img src="assets/div.png" class="currency-icon-small" alt="д"> =
         </label>
         <input
           type="number"
@@ -18,7 +18,7 @@
           min="0"
           step="0.01"
           class="exchange-input">
-        <img src="assets/chaos.svg" class="currency-icon-small" alt="с">
+        <img src="assets/chaos.png" class="currency-icon-small" alt="с">
       </div>
 
       <!-- Reset Total Button -->
@@ -130,14 +130,14 @@
             class="currency-option"
             [class.selected]="calculator.currencyType === 'д'"
             (click)="updateCalculatorCurrencyDirect(calculator.id, 'д')">
-            <img src="assets/div.svg" class="currency-icon-selector" alt="д">
+            <img src="assets/div.png" class="currency-icon-selector" alt="д">
             <span>(div)</span>
           </div>
           <div
             class="currency-option"
             [class.selected]="calculator.currencyType === 'с'"
             (click)="updateCalculatorCurrencyDirect(calculator.id, 'с')">
-            <img src="assets/chaos.svg" class="currency-icon-selector" alt="с">
+            <img src="assets/chaos.png" class="currency-icon-selector" alt="с">
             <span>(chaos)</span>
           </div>
         </div>
@@ -168,7 +168,7 @@
           <ng-container *ngIf="result.id === calculator.id">
             {{ soldAmounts[calculator.id] || 0 }} × {{ calculator.price || 0 }} = {{ result.result.toFixed(2) }}
             <img
-              [src]="result.currencyType === 'д' ? 'assets/div.svg' : 'assets/chaos.svg'"
+              [src]="result.currencyType === 'д' ? 'assets/div.png' : 'assets/chaos.png'"
               class="currency-icon"
               [alt]="result.currencyType">
           </ng-container>
@@ -194,31 +194,31 @@
     </div>
     <div class="summary-grid">
       <div class="summary-item">
-        <h4>Sum of all <img src="assets/div.svg" class="currency-icon" alt="д"></h4>
+        <h4>Sum of all <img src="assets/div.png" class="currency-icon" alt="д"></h4>
         <div class="summary-value">
-          {{ summary.totalD.toFixed(2) }} <img src="assets/div.svg" class="currency-icon" alt="д">
+          {{ summary.totalD.toFixed(2) }} <img src="assets/div.png" class="currency-icon" alt="д">
         </div>
       </div>
 
       <div class="summary-item">
-        <h4>Sum of all <img src="assets/chaos.svg" class="currency-icon" alt="с"></h4>
+        <h4>Sum of all <img src="assets/chaos.png" class="currency-icon" alt="с"></h4>
         <div class="summary-value">
-          {{ summary.totalC.toFixed(2) }} <img src="assets/chaos.svg" class="currency-icon" alt="с">
+          {{ summary.totalC.toFixed(2) }} <img src="assets/chaos.png" class="currency-icon" alt="с">
         </div>
       </div>
 
       <div class="summary-item summary-item-total">
-        <h4>All in <img src="assets/chaos.svg" class="currency-icon" alt="с"></h4>
+        <h4>All in <img src="assets/chaos.png" class="currency-icon" alt="с"></h4>
         <div class="summary-value">
-          {{ summary.totalInC.toFixed(2) }} <img src="assets/chaos.svg" class="currency-icon" alt="с">
+          {{ summary.totalInC.toFixed(2) }} <img src="assets/chaos.png" class="currency-icon" alt="с">
         </div>
       </div>
 
       <div class="summary-item summary-item-total">
-        <h4>All in <img src="assets/div.svg" class="currency-icon" alt="д"> + rest</h4>
+        <h4>All in <img src="assets/div.png" class="currency-icon" alt="д"> + rest</h4>
         <div class="summary-value">
-          {{ summary.totalInDWithRemainder.wholeDPart }} <img src="assets/div.svg" class="currency-icon" alt="д">
-          {{ summary.totalInDWithRemainder.remainderC.toFixed(2) }} <img src="assets/chaos.svg" class="currency-icon" alt="с">
+          {{ summary.totalInDWithRemainder.wholeDPart }} <img src="assets/div.png" class="currency-icon" alt="д">
+          {{ summary.totalInDWithRemainder.remainderC.toFixed(2) }} <img src="assets/chaos.png" class="currency-icon" alt="с">
         </div>
       </div>
     </div>
