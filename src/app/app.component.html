@@ -11,12 +11,12 @@
           1 <img src="assets/div.png" class="currency-icon-small" alt="д"> =
         </label>
         <input
-          type="number"
+          type="text"
+          inputmode="decimal"
           id="exchangeRate"
-          [value]="(currentPreset$ | async)?.exchangeRate || 160"
+          [value]="displayValues['exchangeRate'] ?? (currentPreset$ | async)?.exchangeRate ?? 160"
           (input)="updateExchangeRate($event)"
-          min="0"
-          step="0.01"
+          (keyup)="validateDecimalInput($event)"
           class="exchange-input">
         <img src="assets/chaos.png" class="currency-icon-small" alt="с">
       </div>
@@ -102,24 +102,24 @@
       <div class="input-group">
         <label [for]="'total' + calculator.id">Total:</label>
         <input
-          type="number"
+          type="text"
+          inputmode="decimal"
           [id]="'total' + calculator.id"
-          [value]="calculator.totalQuantity || ''"
+          [value]="displayValues['total_' + calculator.id] ?? calculator.totalQuantity ?? ''"
           (input)="updateCalculatorTotal(calculator.id, $event)"
-          min="0"
-          step="0.01"
+          (keyup)="validateDecimalInput($event)"
           placeholder="0">
       </div>
 
       <div class="input-group">
         <label [for]="'price' + calculator.id">Price:</label>
         <input
-          type="number"
+          type="text"
+          inputmode="decimal"
           [id]="'price' + calculator.id"
-          [value]="calculator.price || ''"
+          [value]="displayValues['price_' + calculator.id] ?? calculator.price ?? ''"
           (input)="updateCalculatorPrice(calculator.id, $event)"
-          min="0"
-          step="0.01"
+          (keyup)="validateDecimalInput($event)"
           placeholder="0">
       </div>
 
@@ -147,11 +147,11 @@
       <div class="sold-controls">
         <div class="sold-input-group">
           <input
-            type="number"
-            [value]="soldAmounts[calculator.id] || ''"
+            type="text"
+            inputmode="decimal"
+            [value]="displayValues['sold_' + calculator.id] ?? soldAmounts[calculator.id] ?? ''"
             (input)="updateSoldAmount(calculator.id, $event)"
-            min="0"
-            step="0.01"
+            (keyup)="validateDecimalInput($event)"
             placeholder="Quantity"
             class="sold-input">
           <button

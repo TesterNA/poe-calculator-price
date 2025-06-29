@@ -75,10 +75,21 @@
     background-color: #3a3a3a;
     color: #ffffff;
     font-size: 14px;
+    text-align: right;
 
     &:focus {
       outline: none;
       border-color: #4a9eff;
+    }
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    &[type="text"] {
+      -moz-appearance: textfield;
     }
   }
 }
@@ -368,6 +379,21 @@
     &::placeholder {
       color: #888;
     }
+
+    // Ensure number-like inputs behave consistently
+    &[inputmode="decimal"] {
+      text-align: right;
+
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      &[type="text"] {
+        -moz-appearance: textfield;
+      }
+    }
   }
 
   select {
@@ -437,6 +463,7 @@
       background-color: #3a3a3a;
       color: #ffffff;
       font-size: 14px;
+      text-align: right;
 
       &:focus {
         outline: none;
@@ -445,6 +472,16 @@
 
       &::placeholder {
         color: #888;
+      }
+
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      &[type="text"] {
+        -moz-appearance: textfield;
       }
     }
 

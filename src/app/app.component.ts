@@ -37,6 +37,9 @@ export class AppComponent implements OnInit, OnDestroy {
   soldAmounts: { [calculatorId: number]: number } = {};
   private soldAmountsSubject = new BehaviorSubject<{ [calculatorId: number]: number }>({});
 
+  // Display values to preserve decimal separators during typing
+  displayValues: { [key: string]: string } = {};
+
   constructor(private calculatorService: CalculatorService) {
     this.currentPreset$ = this.calculatorService.currentPreset$;
     this.availablePresets$ = this.calculatorService.availablePresets$;
@@ -177,13 +180,6 @@ export class AppComponent implements OnInit, OnDestroy {
     document.body.removeChild(textArea);
   }
 
-  // Exchange rate methods
-  updateExchangeRate(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const rate = parseFloat(target.value) || 0;
-    this.calculatorService.updateExchangeRate(rate);
-  }
-
   // Calculator management methods
   updateCalculatorLabel(id: number, event: Event): void {
     const target = event.target as HTMLInputElement;
@@ -192,20 +188,85 @@ export class AppComponent implements OnInit, OnDestroy {
 
   updateCalculatorTotal(id: number, event: Event): void {
     const target = event.target as HTMLInputElement;
-    const totalQuantity = parseFloat(target.value) || 0;
+    const inputValue = target.value;
+
+    // Always update display value immediately for responsive UI
+    this.displayValues['total_' + id] = inputValue;
+
+    // Parse and save to service immediately for calculations
+    const totalQuantity = this.parseNumberInput(inputValue);
     this.calculatorService.updateCalculator(id, {totalQuantity});
+
+    // Clear display override if input is completed (no trailing decimal separator)
+    if (!inputValue.endsWith('.') && !inputValue.endsWith(',')) {
+      delete this.displayValues['total_' + id];
+    }
   }
 
   updateSoldAmount(id: number, event: Event): void {
     const target = event.target as HTMLInputElement;
-    this.soldAmounts[id] = parseFloat(target.value) || 0;
+    const inputValue = target.value;
+
+    // Always update display value immediately for responsive UI
+    this.displayValues['sold_' + id] = inputValue;
+
+    // Parse and save immediately for calculations
+    this.soldAmounts[id] = this.parseNumberInput(inputValue);
     this.soldAmountsSubject.next({...this.soldAmounts});
+
+    // Clear display override if input is completed (no trailing decimal separator)
+    if (!inputValue.endsWith('.') && !inputValue.endsWith(',')) {
+      delete this.displayValues['sold_' + id];
+    }
   }
 
   updateCalculatorPrice(id: number, event: Event): void {
     const target = event.target as HTMLInputElement;
-    const price = parseFloat(target.value) || 0;
+    const inputValue = target.value;
+
+    // Always update display value immediately for responsive UI
+    this.displayValues['price_' + id] = inputValue;
+
+    // Parse and save to service immediately for calculations
+    const price = this.parseNumberInput(inputValue);
     this.calculatorService.updateCalculator(id, {price});
+
+    // Clear display override if input is completed (no trailing decimal separator)
+    if (!inputValue.endsWith('.') && !inputValue.endsWith(',')) {
+      delete this.displayValues['price_' + id];
+    }
+  }
+
+  // Exchange rate methods
+  updateExchangeRate(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const inputValue = target.value;
+
+    // Always update display value immediately for responsive UI
+    this.displayValues['exchangeRate'] = inputValue;
+
+    // Parse and save immediately for calculations
+    const rate = this.parseNumberInput(inputValue);
+    this.calculatorService.updateExchangeRate(rate);
+
+    // Clear display override if input is completed (no trailing decimal separator)
+    if (!inputValue.endsWith('.') && !inputValue.endsWith(',')) {
+      delete this.displayValues['exchangeRate'];
+    }
+  }
+
+  // Number input handling methods
+  private parseNumberInput(value: string): number {
+    if (!value || value.trim() === '') return 0;
+
+    // Replace comma with dot for decimal parsing
+    const normalizedValue = value.replace(',', '.');
+
+    // Remove any non-numeric characters except dots and minus
+    const cleanValue = normalizedValue.replace(/[^0-9.-]/g, '');
+
+    const parsed = parseFloat(cleanValue);
+    return isNaN(parsed) ? 0 : Math.max(0, parsed);
   }
 
   updateCalculatorCurrency(id: number, event: Event): void {
@@ -224,6 +285,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (soldAmount && soldAmount > 0) {
       this.calculatorService.markAsSold(id, soldAmount);
       this.soldAmounts[id] = 0; // Reset input after marking as sold
+      delete this.displayValues['sold_' + id]; // Clear display override
       this.soldAmountsSubject.next({...this.soldAmounts});
     }
   }
@@ -235,16 +297,29 @@ export class AppComponent implements OnInit, OnDestroy {
   removeCalculator(id: number): void {
     if (confirm('Are you sure you want to remove this calculator?')) {
       this.calculatorService.removeCalculator(id);
-      // Clean up sold amount for removed calculator
+      // Clean up sold amount and display values for removed calculator
       delete this.soldAmounts[id];
+      this.clearDisplayValuesForCalculator(id);
       this.soldAmountsSubject.next({...this.soldAmounts});
     }
+  }
+
+  private clearDisplayValuesForCalculator(id: number): void {
+    delete this.displayValues['total_' + id];
+    delete this.displayValues['price_' + id];
+    delete this.displayValues['sold_' + id];
   }
 
   // Reset all total quantities to 0
   resetAllTotals(): void {
     if (confirm('Are you sure you want to reset all total quantities to 0?')) {
       this.calculatorService.resetAllTotals();
+      // Clear display values for total fields
+      this.currentPreset$.pipe(take(1)).subscribe(preset => {
+        preset.calculators.forEach(calc => {
+          delete this.displayValues['total_' + calc.id];
+        });
+      });
     }
   }
 
@@ -259,8 +334,9 @@ export class AppComponent implements OnInit, OnDestroy {
             this.calculatorService.markAsSold(calc.id, soldAmount);
           }
         });
-        // Clear all sold amounts after processing
+        // Clear all sold amounts and display values after processing
         this.soldAmounts = {};
+        this.displayValues = {}; // Clear all display overrides
         this.soldAmountsSubject.next({...this.soldAmounts});
       });
     }
@@ -308,8 +384,9 @@ export class AppComponent implements OnInit, OnDestroy {
         this.selectedPresetName = preset.name;
       });
     } else {
-      // Clear sold amounts when loading preset
+      // Clear sold amounts and display values when loading preset
       this.soldAmounts = {};
+      this.displayValues = {};
       this.soldAmountsSubject.next({});
       this.selectedPresetName = presetName;
     }
@@ -376,5 +453,34 @@ export class AppComponent implements OnInit, OnDestroy {
   // Debug method (can be removed in production)
   resetToDefaults(): void {
     this.calculatorService.resetToDefaults();
+  }
+
+  validateDecimalInput(event: KeyboardEvent): void {
+    const target = event.target as HTMLInputElement;
+    const value = target.value;
+
+    // Allow backspace, delete, tab, escape, enter
+    if ([8, 9, 27, 13, 46].indexOf(event.keyCode) !== -1 ||
+        // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+        (event.keyCode === 65 && event.ctrlKey === true) ||
+        (event.keyCode === 67 && event.ctrlKey === true) ||
+        (event.keyCode === 86 && event.ctrlKey === true) ||
+        (event.keyCode === 88 && event.ctrlKey === true)) {
+      return;
+    }
+
+    // Ensure that it's a valid decimal number input
+    const char = String.fromCharCode(event.keyCode);
+    const isValidChar = /[0-9,.]/.test(char);
+
+    if (!isValidChar) {
+      event.preventDefault();
+      return;
+    }
+
+    // Allow only one decimal separator
+    if ((char === '.' || char === ',') && (value.includes('.') || value.includes(','))) {
+      event.preventDefault();
+    }
   }
 }
