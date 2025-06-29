@@ -382,7 +382,6 @@
 
     // Ensure number-like inputs behave consistently
     &[inputmode="decimal"] {
-      text-align: right;
 
       &::-webkit-outer-spin-button,
       &::-webkit-inner-spin-button {
@@ -463,7 +462,6 @@
       background-color: #3a3a3a;
       color: #ffffff;
       font-size: 14px;
-      text-align: right;
 
       &:focus {
         outline: none;
