@@ -38,6 +38,23 @@
   flex-wrap: wrap;
 }
 
+// Reset Total button
+.reset-total-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 3px;
+  background-color: #ffc107;
+  color: #000;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: #e0a800;
+  }
+}
+
 // Compact exchange rate
 .exchange-rate-compact {
   display: flex;
@@ -478,11 +495,35 @@
   padding: 25px;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
 
   h2 {
-    margin-bottom: 20px;
+    margin: 0;
     color: #4a9eff;
-    text-align: center;
+  }
+
+  .sold-all-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #28a745;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+
+    &:hover {
+      background-color: #218838;
+    }
   }
 }
 
@@ -497,6 +538,10 @@
   padding: 15px;
   border-radius: 8px;
   border-left: 4px solid #4a9eff;
+
+  &.summary-item-total {
+    border-left-color: #ffc107;
+  }
 
   h4 {
     margin-bottom: 10px;
@@ -683,6 +728,11 @@
 
   .summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .summary-header {
+    flex-direction: column;
+    text-align: center;
   }
 
   .input-group-inline,

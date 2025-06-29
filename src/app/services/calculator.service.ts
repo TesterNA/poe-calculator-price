@@ -52,7 +52,6 @@ export class CalculatorService {
     this.loadFromLocalStorage();
   }
 
-  // Calculator operations
   private calculateResults(calculators: Calculator[]): CalculatorResult[] {
     return calculators.map(calc => ({
       id: calc.id,
@@ -61,7 +60,16 @@ export class CalculatorService {
     }));
   }
 
-  private calculateSummary(results: CalculatorResult[], exchangeRate: number): Summary {
+  // Calculate results with custom quantities (for sold amounts)
+  calculateResultsWithQuantities(calculators: Calculator[], quantities: { [id: number]: number }): CalculatorResult[] {
+    return calculators.map(calc => ({
+      id: calc.id,
+      result: (quantities[calc.id] || 0) * calc.price,
+      currencyType: calc.currencyType
+    }));
+  }
+
+  calculateSummary(results: CalculatorResult[], exchangeRate: number): Summary {
     let totalD = 0;
     let totalC = 0;
 
@@ -160,6 +168,19 @@ export class CalculatorService {
   updateExchangeRate(rate: number): void {
     const currentPreset = this.currentPresetSubject.value;
     const updatedPreset = { ...currentPreset, exchangeRate: rate };
+    this.currentPresetSubject.next(updatedPreset);
+    this.saveCurrentPreset();
+  }
+
+  // Reset all total quantities to 0
+  resetAllTotals(): void {
+    const currentPreset = this.currentPresetSubject.value;
+    const calculators = currentPreset.calculators.map(calc => ({
+      ...calc,
+      totalQuantity: 0
+    }));
+
+    const updatedPreset = { ...currentPreset, calculators };
     this.currentPresetSubject.next(updatedPreset);
     this.saveCurrentPreset();
   }
@@ -335,7 +356,7 @@ export class CalculatorService {
     try {
       const savedPresets = localStorage.getItem(this.STORAGE_KEY);
       if (savedPresets) {
-        const presets: Preset[] = JSON.parse(savedPresets);
+        const presets: any[] = JSON.parse(savedPresets);
         if (presets.length > 0) {
           const migratedPresets = presets.map(preset => ({
             ...preset,

@@ -21,6 +21,11 @@
         <img src="assets/chaos.svg" class="currency-icon-small" alt="с">
       </div>
 
+      <!-- Reset Total Button -->
+      <button (click)="resetAllTotals()" class="reset-total-btn" title="Reset all total quantities to 0">
+        🔄 Reset Total
+      </button>
+
       <!-- Presets dropdown -->
       <div class="presets-compact">
         <select
@@ -126,14 +131,14 @@
             [class.selected]="calculator.currencyType === 'д'"
             (click)="updateCalculatorCurrencyDirect(calculator.id, 'д')">
             <img src="assets/div.svg" class="currency-icon-selector" alt="д">
-            <span>д (div)</span>
+            <span>(div)</span>
           </div>
           <div
             class="currency-option"
             [class.selected]="calculator.currencyType === 'с'"
             (click)="updateCalculatorCurrencyDirect(calculator.id, 'с')">
             <img src="assets/chaos.svg" class="currency-icon-selector" alt="с">
-            <span>с (chaos)</span>
+            <span>(chaos)</span>
           </div>
         </div>
       </div>
@@ -143,7 +148,8 @@
         <div class="sold-input-group">
           <input
             type="number"
-            [(ngModel)]="soldAmounts[calculator.id]"
+            [value]="soldAmounts[calculator.id] || ''"
+            (input)="updateSoldAmount(calculator.id, $event)"
             min="0"
             step="0.01"
             placeholder="Quantity"
@@ -160,7 +166,7 @@
       <div class="result">
         <ng-container *ngFor="let result of calculatorResults$ | async">
           <ng-container *ngIf="result.id === calculator.id">
-            {{ calculator.totalQuantity || 0 }} × {{ calculator.price || 0 }} = {{ result.result.toFixed(2) }}
+            {{ soldAmounts[calculator.id] || 0 }} × {{ calculator.price || 0 }} = {{ result.result.toFixed(2) }}
             <img
               [src]="result.currencyType === 'д' ? 'assets/div.svg' : 'assets/chaos.svg'"
               class="currency-icon"
@@ -180,7 +186,12 @@
 
   <!-- Summary Section -->
   <div class="summary-section" *ngIf="summary$ | async as summary">
-    <h2>Summary</h2>
+    <div class="summary-header">
+      <h2>Summary</h2>
+      <button (click)="soldAll()" class="sold-all-btn" title="Mark all quantities as sold">
+        💰 Sold All
+      </button>
+    </div>
     <div class="summary-grid">
       <div class="summary-item">
         <h4>Sum of all <img src="assets/div.svg" class="currency-icon" alt="д"></h4>
@@ -196,15 +207,15 @@
         </div>
       </div>
 
-      <div class="summary-item">
+      <div class="summary-item summary-item-total">
         <h4>All in <img src="assets/chaos.svg" class="currency-icon" alt="с"></h4>
         <div class="summary-value">
           {{ summary.totalInC.toFixed(2) }} <img src="assets/chaos.svg" class="currency-icon" alt="с">
         </div>
       </div>
 
-      <div class="summary-item">
-        <h4>All in <img src="assets/div.svg" class="currency-icon" alt="д"> + remainder</h4>
+      <div class="summary-item summary-item-total">
+        <h4>All in <img src="assets/div.svg" class="currency-icon" alt="д"> + rest</h4>
         <div class="summary-value">
           {{ summary.totalInDWithRemainder.wholeDPart }} <img src="assets/div.svg" class="currency-icon" alt="д">
           {{ summary.totalInDWithRemainder.remainderC.toFixed(2) }} <img src="assets/chaos.svg" class="currency-icon" alt="с">

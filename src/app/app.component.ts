@@ -1,8 +1,8 @@
 import {Component, OnInit, OnDestroy} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
-import {Observable, take, Subject} from 'rxjs';
-import {takeUntil} from 'rxjs/operators';
+import {Observable, take, Subject, combineLatest, BehaviorSubject} from 'rxjs';
+import {takeUntil, map} from 'rxjs/operators';
 import {CalculatorService} from './services/calculator.service';
 import {Calculator, Preset, CalculatorResult, Summary} from './models/calculator.interface';
 
@@ -35,12 +35,28 @@ export class AppComponent implements OnInit, OnDestroy {
   newPresetName = '';
   importData = '';
   soldAmounts: { [calculatorId: number]: number } = {};
+  private soldAmountsSubject = new BehaviorSubject<{ [calculatorId: number]: number }>({});
 
   constructor(private calculatorService: CalculatorService) {
     this.currentPreset$ = this.calculatorService.currentPreset$;
     this.availablePresets$ = this.calculatorService.availablePresets$;
-    this.calculatorResults$ = this.calculatorService.calculatorResults$;
-    this.summary$ = this.calculatorService.summary$;
+
+    // Custom calculator results using sold amounts as quantities
+    this.calculatorResults$ = combineLatest([
+      this.currentPreset$,
+      this.soldAmountsSubject.asObservable()
+    ]).pipe(
+      map(([preset, soldAmounts]) =>
+        this.calculatorService.calculateResultsWithQuantities(preset.calculators, soldAmounts)
+      )
+    );
+
+    this.summary$ = combineLatest([
+      this.currentPreset$,
+      this.calculatorResults$
+    ]).pipe(
+      map(([preset, results]) => this.calculatorService.calculateSummary(results, preset.exchangeRate))
+    );
   }
 
   ngOnInit(): void {
@@ -66,9 +82,27 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   openRequestModal(): void {
-    const requestData = this.calculatorService.generateRequest();
-    this.generatedRequestBody = requestData.body;
-    this.showRequestModal = true;
+    this.currentPreset$.pipe(take(1)).subscribe(currentPreset => {
+      const items = currentPreset.calculators
+        .filter((calc: Calculator) => calc.totalQuantity > 0)
+        .map((calc: Calculator) => ({
+          name: this.getCalculatorDisplayName(calc),
+          quantity: calc.totalQuantity,
+          price: calc.price,
+          currencyIcon: calc.currencyType === 'д' ? ':divine:' : ':chaos:'
+        }));
+
+      const body = items.length > 0
+        ? items.map((item: any) => `x${item.quantity} ${item.name} - ${item.price} ${item.currencyIcon}/ea`).join('\n')
+        : 'No items for sale (all quantities = 0)';
+
+      this.generatedRequestBody = body;
+      this.showRequestModal = true;
+    });
+  }
+
+  private getCalculatorDisplayName(calculator: Calculator): string {
+    return calculator.label.trim() || `Calculator_${calculator.id}`;
   }
 
   closeRequestModal(): void {
@@ -88,19 +122,32 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   copyFullRequest(): void {
-    const requestData = this.calculatorService.generateRequest();
+    this.currentPreset$.pipe(take(1)).subscribe(currentPreset => {
+      const items = currentPreset.calculators
+        .filter((calc: Calculator) => calc.totalQuantity > 0)
+        .map((calc: Calculator) => ({
+          name: this.getCalculatorDisplayName(calc),
+          quantity: calc.totalQuantity,
+          price: calc.price,
+          currencyIcon: calc.currencyType === 'д' ? ':divine:' : ':chaos:'
+        }));
 
-    const parts = [];
-    if (requestData.header.trim()) {
-      parts.push(requestData.header.trim());
-    }
-    parts.push(requestData.body);
-    if (requestData.footer.trim()) {
-      parts.push(requestData.footer.trim());
-    }
+      const body = items.length > 0
+        ? items.map((item: any) => `x${item.quantity} ${item.name} - ${item.price}${item.currencyIcon}/ea`).join('\n')
+        : 'No items for sale (all quantities = 0)';
 
-    const fullRequest = parts.join('\n\n');
-    this.copyToClipboard(fullRequest);
+      const parts = [];
+      if (currentPreset.requestHeader?.trim()) {
+        parts.push(currentPreset.requestHeader.trim());
+      }
+      parts.push(body);
+      if (currentPreset.requestFooter?.trim()) {
+        parts.push(currentPreset.requestFooter.trim());
+      }
+
+      const fullRequest = parts.join('\n\n');
+      this.copyToClipboard(fullRequest);
+    });
   }
 
   copyToClipboard(text: string): void {
@@ -149,6 +196,12 @@ export class AppComponent implements OnInit, OnDestroy {
     this.calculatorService.updateCalculator(id, {totalQuantity});
   }
 
+  updateSoldAmount(id: number, event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.soldAmounts[id] = parseFloat(target.value) || 0;
+    this.soldAmountsSubject.next({...this.soldAmounts});
+  }
+
   updateCalculatorPrice(id: number, event: Event): void {
     const target = event.target as HTMLInputElement;
     const price = parseFloat(target.value) || 0;
@@ -171,6 +224,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (soldAmount && soldAmount > 0) {
       this.calculatorService.markAsSold(id, soldAmount);
       this.soldAmounts[id] = 0; // Reset input after marking as sold
+      this.soldAmountsSubject.next({...this.soldAmounts});
     }
   }
 
@@ -183,6 +237,32 @@ export class AppComponent implements OnInit, OnDestroy {
       this.calculatorService.removeCalculator(id);
       // Clean up sold amount for removed calculator
       delete this.soldAmounts[id];
+      this.soldAmountsSubject.next({...this.soldAmounts});
+    }
+  }
+
+  // Reset all total quantities to 0
+  resetAllTotals(): void {
+    if (confirm('Are you sure you want to reset all total quantities to 0?')) {
+      this.calculatorService.resetAllTotals();
+    }
+  }
+
+  // Sold all functionality - subtract all quantities from totals
+  soldAll(): void {
+    if (confirm('Are you sure you want to mark all quantities as sold?')) {
+      // Use sold amounts from inputs to subtract from totals
+      this.currentPreset$.pipe(take(1)).subscribe(preset => {
+        preset.calculators.forEach(calc => {
+          const soldAmount = this.soldAmounts[calc.id] || 0;
+          if (soldAmount > 0) {
+            this.calculatorService.markAsSold(calc.id, soldAmount);
+          }
+        });
+        // Clear all sold amounts after processing
+        this.soldAmounts = {};
+        this.soldAmountsSubject.next({...this.soldAmounts});
+      });
     }
   }
 
@@ -230,6 +310,7 @@ export class AppComponent implements OnInit, OnDestroy {
     } else {
       // Clear sold amounts when loading preset
       this.soldAmounts = {};
+      this.soldAmountsSubject.next({});
       this.selectedPresetName = presetName;
     }
   }
