@@ -1,0 +1,260 @@
+<div class="container">
+  <!-- Header with title and compact controls -->
+  <div class="header">
+    <h1>Multiple Calculator</h1>
+
+    <!-- Compact controls -->
+    <div class="compact-controls">
+      <!-- Exchange Rate -->
+      <div class="exchange-rate-compact">
+        <label for="exchangeRate">
+          1 <img src="assets/div.svg" class="currency-icon-small" alt="д"> =
+        </label>
+        <input
+          type="number"
+          id="exchangeRate"
+          [value]="(currentPreset$ | async)?.exchangeRate || 160"
+          (input)="updateExchangeRate($event)"
+          min="0"
+          step="0.01"
+          class="exchange-input">
+        <img src="assets/chaos.svg" class="currency-icon-small" alt="с">
+      </div>
+
+      <!-- Presets dropdown -->
+      <div class="presets-compact">
+        <select
+          [value]="(currentPreset$ | async)?.name || 'Main'"
+          (change)="loadPreset($event)"
+          class="preset-select">
+          <option *ngFor="let preset of availablePresets$ | async" [value]="preset.name">
+            {{ preset.name }}
+          </option>
+        </select>
+        <button (click)="togglePresetControls()" class="preset-toggle">⚙️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expandable preset controls -->
+  <div class="preset-controls" [class.expanded]="showPresetControls">
+    <div class="preset-actions">
+      <div class="input-group-inline">
+        <input
+          type="text"
+          [(ngModel)]="newPresetName"
+          placeholder="New preset name..."
+          class="preset-name-input">
+        <button (click)="savePreset()" [disabled]="!newPresetName.trim()">💾</button>
+        <button (click)="deletePreset()" [disabled]="(currentPreset$ | async)?.name === 'Main'">🗑️</button>
+      </div>
+
+      <div class="import-export-inline">
+        <input
+          type="text"
+          [(ngModel)]="importData"
+          placeholder="Base64 for import..."
+          class="import-input">
+        <button (click)="exportPreset()" title="Export">📤</button>
+        <button (click)="importPreset()" [disabled]="!importData.trim()" title="Import">📥</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Calculator Button -->
+  <div class="add-calculator-section">
+    <button
+      class="add-calculator-btn"
+      (click)="addCalculator()"
+      [disabled]="((currentPreset$ | async)?.calculators?.length || 0) >= 20">
+      + Add Calculator
+    </button>
+  </div>
+
+  <!-- Calculators Grid -->
+  <div class="calculators-grid">
+    <div
+      *ngFor="let calculator of (currentPreset$ | async)?.calculators; trackBy: trackByCalculatorId"
+      class="calculator">
+
+      <div class="calculator-header">
+        <input
+          type="text"
+          [value]="calculator.label"
+          (input)="updateCalculatorLabel(calculator.id, $event)"
+          [placeholder]="'Calculator_' + calculator.id"
+          class="calculator-title-input">
+        <button
+          class="remove-calculator-btn"
+          (click)="removeCalculator(calculator.id)"
+          [disabled]="((currentPreset$ | async)?.calculators?.length || 0) <= 1"
+          title="Remove Calculator">
+          ×
+        </button>
+      </div>
+
+      <div class="input-group">
+        <label [for]="'total' + calculator.id">Total:</label>
+        <input
+          type="number"
+          [id]="'total' + calculator.id"
+          [value]="calculator.totalQuantity || ''"
+          (input)="updateCalculatorTotal(calculator.id, $event)"
+          min="0"
+          step="0.01"
+          placeholder="0">
+      </div>
+
+      <div class="input-group">
+        <label [for]="'price' + calculator.id">Price:</label>
+        <input
+          type="number"
+          [id]="'price' + calculator.id"
+          [value]="calculator.price || ''"
+          (input)="updateCalculatorPrice(calculator.id, $event)"
+          min="0"
+          step="0.01"
+          placeholder="0">
+      </div>
+
+      <div class="input-group">
+        <label [for]="'type' + calculator.id">Currency Type:</label>
+        <select
+          [id]="'type' + calculator.id"
+          [value]="calculator.currencyType"
+          (change)="updateCalculatorCurrency(calculator.id, $event)">
+          <option style="background-image:url('assets/div.png');" value="д">д (div)</option>
+          <option value="с">с (chaos)</option>
+        </select>
+      </div>
+
+      <!-- Sold controls -->
+      <div class="sold-controls">
+        <div class="sold-input-group">
+          <input
+            type="number"
+            [(ngModel)]="soldAmounts[calculator.id]"
+            min="0"
+            step="0.01"
+            placeholder="Quantity"
+            class="sold-input">
+          <button
+            (click)="markAsSold(calculator.id)"
+            [disabled]="!soldAmounts[calculator.id] || soldAmounts[calculator.id] <= 0"
+            class="sold-btn">
+            Sold
+          </button>
+        </div>
+      </div>
+
+      <div class="result">
+        <ng-container *ngFor="let result of calculatorResults$ | async">
+          <ng-container *ngIf="result.id === calculator.id">
+            {{ calculator.totalQuantity || 0 }} × {{ calculator.price || 0 }} = {{ result.result.toFixed(2) }}
+            <img
+              [src]="result.currencyType === 'д' ? 'assets/div.svg' : 'assets/chaos.svg'"
+              class="currency-icon"
+              [alt]="result.currencyType">
+          </ng-container>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generate Request Button -->
+  <div class="generate-request-section">
+    <button class="generate-request-btn" (click)="openRequestModal()">
+      📝 Generate Request
+    </button>
+  </div>
+
+  <!-- Summary Section -->
+  <div class="summary-section" *ngIf="summary$ | async as summary">
+    <h2>Summary</h2>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <h4>Sum of all <img src="assets/div.svg" class="currency-icon" alt="д"></h4>
+        <div class="summary-value">
+          {{ summary.totalD.toFixed(2) }} <img src="assets/div.svg" class="currency-icon" alt="д">
+        </div>
+      </div>
+
+      <div class="summary-item">
+        <h4>Sum of all <img src="assets/chaos.svg" class="currency-icon" alt="с"></h4>
+        <div class="summary-value">
+          {{ summary.totalC.toFixed(2) }} <img src="assets/chaos.svg" class="currency-icon" alt="с">
+        </div>
+      </div>
+
+      <div class="summary-item">
+        <h4>All in <img src="assets/chaos.svg" class="currency-icon" alt="с"></h4>
+        <div class="summary-value">
+          {{ summary.totalInC.toFixed(2) }} <img src="assets/chaos.svg" class="currency-icon" alt="с">
+        </div>
+      </div>
+
+      <div class="summary-item">
+        <h4>All in <img src="assets/div.svg" class="currency-icon" alt="д"> + remainder</h4>
+        <div class="summary-value">
+          {{ summary.totalInDWithRemainder.wholeDPart }} <img src="assets/div.svg" class="currency-icon" alt="д">
+          {{ summary.totalInDWithRemainder.remainderC.toFixed(2) }} <img src="assets/chaos.svg" class="currency-icon" alt="с">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Request Generation Modal -->
+<div class="modal-overlay" *ngIf="showRequestModal" (click)="closeRequestModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Generated Request</h3>
+      <button class="modal-close" (click)="closeRequestModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- Header field -->
+      <div class="modal-field">
+        <label for="requestHeader">Header (optional):</label>
+        <input
+          type="text"
+          id="requestHeader"
+          [value]="(currentPreset$ | async)?.requestHeader || ''"
+          (input)="updateRequestHeader($event)"
+          placeholder="Enter header text..."
+          class="modal-input">
+      </div>
+
+      <!-- Generated request body (readonly) -->
+      <div class="modal-field">
+        <label for="requestBody">Generated Request:</label>
+        <textarea
+          id="requestBody"
+          [value]="generatedRequestBody"
+          readonly
+          rows="10"
+          class="request-textarea"></textarea>
+      </div>
+
+      <!-- Footer field -->
+      <div class="modal-field">
+        <label for="requestFooter">Footer (optional):</label>
+        <input
+          type="text"
+          id="requestFooter"
+          [value]="(currentPreset$ | async)?.requestFooter || ''"
+          (input)="updateRequestFooter($event)"
+          placeholder="Enter footer text..."
+          class="modal-input">
+      </div>
+
+      <div class="modal-actions">
+        <button (click)="copyFullRequest()" class="copy-btn">
+          📋 Copy All
+        </button>
+        <button (click)="closeRequestModal()" class="close-btn">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
