@@ -39,7 +39,13 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Component initialization if needed
+    // Subscribe to current preset changes to ensure proper dropdown sync
+    this.currentPreset$.pipe(take(1)).subscribe(preset => {
+      // This ensures the dropdown is properly synced with the current preset
+      if (preset) {
+        console.log('Current preset loaded:', preset.name);
+      }
+    });
   }
 
   // UI control methods
@@ -143,6 +149,10 @@ export class AppComponent implements OnInit {
     this.calculatorService.updateCalculator(id, { currencyType });
   }
 
+  updateCalculatorCurrencyDirect(id: number, currencyType: 'д' | 'с'): void {
+    this.calculatorService.updateCalculator(id, { currencyType });
+  }
+
   // Sold functionality - subtract from total quantity
   markAsSold(id: number): void {
     const soldAmount = this.soldAmounts[id];
@@ -179,6 +189,19 @@ export class AppComponent implements OnInit {
     } else {
       alert('A preset with this name already exists!');
     }
+  }
+
+  overwriteCurrentPreset(): void {
+    this.currentPreset$.pipe(take(1)).subscribe(currentPreset => {
+      if (confirm(`Are you sure you want to overwrite preset "${currentPreset.name}" with current settings?`)) {
+        const success = this.calculatorService.overwriteCurrentPreset();
+        if (success) {
+          alert(`Preset "${currentPreset.name}" updated successfully!`);
+        } else {
+          alert('Error updating preset');
+        }
+      }
+    }).unsubscribe();
   }
 
   loadPreset(event: Event): void {

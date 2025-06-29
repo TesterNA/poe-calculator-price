@@ -210,6 +210,22 @@ export class CalculatorService {
     return true;
   }
 
+  // Overwrite current preset keeping the same name
+  overwriteCurrentPreset(): boolean {
+    const currentPreset = this.currentPresetSubject.value;
+    const presets = this.availablePresetsSubject.value;
+
+    // Update the preset in the list with the same name but current data
+    const updatedPresets = presets.map(preset =>
+      preset.name === currentPreset.name ? currentPreset : preset
+    );
+
+    this.availablePresetsSubject.next(updatedPresets);
+    this.savePresetsToLocalStorage();
+    this.saveCurrentPreset();
+    return true;
+  }
+
   loadPreset(name: string): boolean {
     const presets = this.availablePresetsSubject.value;
     const preset = presets.find(p => p.name === name);
@@ -321,10 +337,9 @@ export class CalculatorService {
       if (savedPresets) {
         const presets: Preset[] = JSON.parse(savedPresets);
         if (presets.length > 0) {
-          // Migrate old presets that don't have header/footer and translate "Основний" to "Main"
           const migratedPresets = presets.map(preset => ({
             ...preset,
-            name: preset.name === 'Основний' ? 'Main' : preset.name,
+            name: preset.name,
             requestHeader: preset.requestHeader || '',
             requestFooter: preset.requestFooter || ''
           }));
@@ -333,15 +348,16 @@ export class CalculatorService {
       }
 
       const savedCurrentPreset = localStorage.getItem(this.CURRENT_PRESET_KEY);
+      console.log(savedCurrentPreset)
       if (savedCurrentPreset) {
         const currentPreset: any = JSON.parse(savedCurrentPreset);
-        // Migrate old preset that doesn't have header/footer and translate name
         const migratedPreset = {
           ...currentPreset,
-          name: currentPreset.name === 'Основний' ? 'Main' : currentPreset.name,
+          name: currentPreset.name,
           requestHeader: currentPreset.requestHeader || '',
           requestFooter: currentPreset.requestFooter || ''
         };
+        console.log(this.isValidPreset(migratedPreset))
         if (this.isValidPreset(migratedPreset)) {
           this.currentPresetSubject.next(migratedPreset);
         }

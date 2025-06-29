@@ -24,7 +24,7 @@
       <!-- Presets dropdown -->
       <div class="presets-compact">
         <select
-          [value]="(currentPreset$ | async)?.name || 'Main'"
+          [value]="(currentPreset$ | async)?.name"
           (change)="loadPreset($event)"
           class="preset-select">
           <option *ngFor="let preset of availablePresets$ | async" [value]="preset.name">
@@ -45,8 +45,9 @@
           [(ngModel)]="newPresetName"
           placeholder="New preset name..."
           class="preset-name-input">
-        <button (click)="savePreset()" [disabled]="!newPresetName.trim()">💾</button>
-        <button (click)="deletePreset()" [disabled]="(currentPreset$ | async)?.name === 'Main'">🗑️</button>
+        <button (click)="savePreset()" [disabled]="!newPresetName.trim()" title="Save as new preset">💾</button>
+        <button (click)="overwriteCurrentPreset()" title="Update current preset with current settings">🔄</button>
+        <button (click)="deletePreset()" [disabled]="(currentPreset$ | async)?.name === 'Main'" title="Delete current preset">🗑️</button>
       </div>
 
       <div class="import-export-inline">
@@ -119,13 +120,22 @@
 
       <div class="input-group">
         <label [for]="'type' + calculator.id">Currency Type:</label>
-        <select
-          [id]="'type' + calculator.id"
-          [value]="calculator.currencyType"
-          (change)="updateCalculatorCurrency(calculator.id, $event)">
-          <option style="background-image:url('assets/div.png');" value="д">д (div)</option>
-          <option value="с">с (chaos)</option>
-        </select>
+        <div class="currency-selector" [id]="'type' + calculator.id">
+          <div
+            class="currency-option"
+            [class.selected]="calculator.currencyType === 'д'"
+            (click)="updateCalculatorCurrencyDirect(calculator.id, 'д')">
+            <img src="assets/div.svg" class="currency-icon-selector" alt="д">
+            <span>д (div)</span>
+          </div>
+          <div
+            class="currency-option"
+            [class.selected]="calculator.currencyType === 'с'"
+            (click)="updateCalculatorCurrencyDirect(calculator.id, 'с')">
+            <img src="assets/chaos.svg" class="currency-icon-selector" alt="с">
+            <span>с (chaos)</span>
+          </div>
+        </div>
       </div>
 
       <!-- Sold controls -->
