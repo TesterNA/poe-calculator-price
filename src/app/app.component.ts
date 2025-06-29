@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Observable, take } from 'rxjs';
-import { CalculatorService } from './services/calculator.service';
-import { Calculator, Preset, CalculatorResult, Summary } from './models/calculator.interface';
+import {Component, OnInit, OnDestroy} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {FormsModule} from '@angular/forms';
+import {Observable, take, Subject} from 'rxjs';
+import {takeUntil} from 'rxjs/operators';
+import {CalculatorService} from './services/calculator.service';
+import {Calculator, Preset, CalculatorResult, Summary} from './models/calculator.interface';
 
 @Component({
   selector: 'app-root',
@@ -12,7 +13,7 @@ import { Calculator, Preset, CalculatorResult, Summary } from './models/calculat
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'calculator-app';
 
   // Observables from service
@@ -21,10 +22,14 @@ export class AppComponent implements OnInit {
   calculatorResults$: Observable<CalculatorResult[]>;
   summary$: Observable<Summary>;
 
+  // Subscription management
+  private destroy$ = new Subject<void>();
+
   // UI state
   showPresetControls = false;
   showRequestModal = false;
   generatedRequestBody = '';
+  selectedPresetName = '';
 
   // Form data
   newPresetName = '';
@@ -40,12 +45,19 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     // Subscribe to current preset changes to ensure proper dropdown sync
-    this.currentPreset$.pipe(take(1)).subscribe(preset => {
-      // This ensures the dropdown is properly synced with the current preset
-      if (preset) {
-        console.log('Current preset loaded:', preset.name);
-      }
-    });
+    this.currentPreset$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(preset => {
+        if (preset) {
+          this.selectedPresetName = preset.name;
+          console.log('Current preset loaded:', preset.name);
+        }
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   // UI control methods
@@ -128,29 +140,29 @@ export class AppComponent implements OnInit {
   // Calculator management methods
   updateCalculatorLabel(id: number, event: Event): void {
     const target = event.target as HTMLInputElement;
-    this.calculatorService.updateCalculator(id, { label: target.value });
+    this.calculatorService.updateCalculator(id, {label: target.value});
   }
 
   updateCalculatorTotal(id: number, event: Event): void {
     const target = event.target as HTMLInputElement;
     const totalQuantity = parseFloat(target.value) || 0;
-    this.calculatorService.updateCalculator(id, { totalQuantity });
+    this.calculatorService.updateCalculator(id, {totalQuantity});
   }
 
   updateCalculatorPrice(id: number, event: Event): void {
     const target = event.target as HTMLInputElement;
     const price = parseFloat(target.value) || 0;
-    this.calculatorService.updateCalculator(id, { price });
+    this.calculatorService.updateCalculator(id, {price});
   }
 
   updateCalculatorCurrency(id: number, event: Event): void {
     const target = event.target as HTMLSelectElement;
     const currencyType = target.value as 'д' | 'с';
-    this.calculatorService.updateCalculator(id, { currencyType });
+    this.calculatorService.updateCalculator(id, {currencyType});
   }
 
   updateCalculatorCurrencyDirect(id: number, currencyType: 'д' | 'с'): void {
-    this.calculatorService.updateCalculator(id, { currencyType });
+    this.calculatorService.updateCalculator(id, {currencyType});
   }
 
   // Sold functionality - subtract from total quantity
@@ -211,9 +223,14 @@ export class AppComponent implements OnInit {
     const success = this.calculatorService.loadPreset(presetName);
     if (!success) {
       alert('Error loading preset');
+      // Reset select to current preset if loading failed
+      this.currentPreset$.pipe(take(1)).subscribe(preset => {
+        this.selectedPresetName = preset.name;
+      });
     } else {
       // Clear sold amounts when loading preset
       this.soldAmounts = {};
+      this.selectedPresetName = presetName;
     }
   }
 
@@ -228,6 +245,7 @@ export class AppComponent implements OnInit {
         const success = this.calculatorService.deletePreset(currentPreset.name);
         if (success) {
           this.calculatorService.loadPreset('Main');
+          this.selectedPresetName = 'Main';
           alert('Preset deleted successfully');
         } else {
           alert('Error deleting preset');

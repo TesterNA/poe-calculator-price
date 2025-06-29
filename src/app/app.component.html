@@ -24,7 +24,7 @@
       <!-- Presets dropdown -->
       <div class="presets-compact">
         <select
-          [value]="(currentPreset$ | async)?.name"
+          [(ngModel)]="selectedPresetName"
           (change)="loadPreset($event)"
           class="preset-select">
           <option *ngFor="let preset of availablePresets$ | async" [value]="preset.name">
