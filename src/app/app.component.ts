@@ -92,7 +92,7 @@ export class AppComponent implements OnInit, OnDestroy {
           name: this.getCalculatorDisplayName(calc),
           quantity: calc.totalQuantity,
           price: calc.price,
-          currencyIcon: calc.currencyType === 'д' ? 'd' : 'c'
+          currencyIcon: calc.currencyType === 'д' ? 'div' : 'chaos'
         }));
 
       const body = items.length > 0
